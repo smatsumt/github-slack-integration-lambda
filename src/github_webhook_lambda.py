@@ -8,7 +8,8 @@ GitHub WebHook で呼び出され、Slack に必要な通知を飛ばす
 - review request された
 - review submitted された
 
-参考 https://developer.github.com/enterprise/2.19/v3/activity/events/types/
+参考 - GitHub の Event でふってくる JSON
+      https://developer.github.com/enterprise/2.19/v3/activity/events/types/
 """
 
 import logging
@@ -35,20 +36,68 @@ def lambda_handler(event, context):
     body = json.loads(body)
 
     handler_issue_pr_mentioned(headers, body)
-    handler_review_assigned(headers, body)
+    handler_review_requested(headers, body)
     handler_review_submitted(headers, body)
 
     return {"statusCode": 200, "body": json.dumps({"result": "ok"})}
 
 
-def handler_review_assigned(headers: dict, body: dict):
+def handler_review_requested(headers: dict, body: dict):
+    """
+    review_requested されたら通知
+    :param headers:
+    :param body:
+    :return:
+    """
     github_event_kind = headers["X-GitHub-Event"]
-    pass
+    if github_event_kind != "pull_request":
+        return
+    if body["action"] != "review_requested":
+        return
+
+    # 通知!
+    message_url = body["pull_request"]["url"]
+    reviewee = body["pull_request"]["user"]["login"]
+    message = body["pull_request"]["body"]
+
+    for u in body["pull_request"]["requested_reviewers"]:
+        notify_message_format = textwrap.dedent("""
+        <{user}>, review requested by {reviewee} in {url}
+        ```
+        {message}
+        ```
+        """)
+        notify_message = notify_message_format.format(user=u, reviewee=reviewee, url=message_url, message=message)
+        notify_slack(notify_message)
 
 
 def handler_review_submitted(headers: dict, body: dict):
+    """
+    review が submit されたときに通知
+    :param headers:
+    :param body:
+    :return:
+    """
     github_event_kind = headers["X-GitHub-Event"]
-    pass
+    if github_event_kind != "pull_request_review":
+        return
+    if body["action"] != "submitted":
+        return
+
+    # 通知!
+    message_url = body["review"]["url"]
+    reviewer = body["review"]["user"]["login"]
+    message = body["review"].get("body") or ""
+
+    for u in body["pull_request"]["requested_reviewers"]:
+        notify_message_format = textwrap.dedent("""
+        <{user}>, review submitted by {reviewer} in {url}
+        ```
+        {message}
+        ```
+        """)
+        notify_message = notify_message_format.format(user=u, reviewer=reviewer, url=message_url, message=message)
+        notify_slack(notify_message)
 
 
 def handler_issue_pr_mentioned(headers: dict, body: dict):
@@ -103,7 +152,12 @@ def _find_mentioned_user(text: str) -> set:
     return set(re.findall(MENTION_REGEXP, text))
 
 
-def notify_slack(text="Hi, <@smatsumoto>!"):
+def notify_slack(text: str):
+    """
+    mention する場合、 "<@username>" と <> で囲う必要があることに注意
+    :param text: Slack に入れる文字列
+    :return:
+    """
     slack = slackweb.Slack(url=SLACK_URL)
     slack.notify(text=text)
 
