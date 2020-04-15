@@ -35,3 +35,14 @@ Resources:
           Properties:
             Path: /github_webhook
             Method: post
+            RestApiId: !Ref GitHubWebhookAPI
+
+  GitHubWebhookAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+
+Outputs:
+  GitHubHookURL:
+    Description: GitHub Hook URL
+    Value: !Sub "https://${GitHubWebhookAPI}.execute-api.${AWS::Region}.amazonaws.com/${GitHubWebhookAPI.Stage}/github_webhook"
