@@ -56,7 +56,7 @@ def handler_review_requested(headers: dict, body: dict):
         return
 
     # 通知!
-    message_url = body["pull_request"]["url"]
+    message_url = body["pull_request"]["html_url"]
     reviewee = body["pull_request"]["user"]["login"]
     message = body["pull_request"]["body"]
 
@@ -85,7 +85,7 @@ def handler_review_submitted(headers: dict, body: dict):
         return
 
     # 通知!
-    message_url = body["review"]["url"]
+    message_url = body["review"]["html_url"]
     reviewer = body["review"]["user"]["login"]
     message = body["review"].get("body") or ""
 
@@ -128,7 +128,7 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
         return  # deleted など、ほかイベントのときは何もしない
 
     # 通知!
-    message_url = body[data_key]["url"]
+    message_url = body[data_key]["html_url"]
     commenter = body[data_key]["user"]["login"]
     message = body[data_key]["body"]
 
