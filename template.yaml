@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: CloufFormation Template for github-slack-integration-lambda
+#
+# グローバル設定
+#
+Globals:
+  Function:
+    Runtime: python3.7
+    Timeout: 30  # API Gateway が 30 秒でタイムアウトのため、デフォルト値はそこにしておく
+    Tracing: "Active"
+
+Parameters:
+  SlackURL:
+    Type: String
+    Description: Slack Web Hook URL
+  ApplicationTag:
+    Type: String
+    Description: Lambda のエイリアスに使用
+    Default: latest
+
+Resources:
+  GitHubWebhookFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: github_webhook_lambda.lambda_handler
+      AutoPublishAlias: !Ref ApplicationTag
+      Environment:
+        Variables:
+          SLACK_URL: SLACK_URL_HERE
+      Events:
+        API:
+          Type: Api
+          Properties:
+            Path: /github_webhook
+            Method: post
