@@ -7,11 +7,15 @@ GitHub WebHook で呼び出され、Slack に必要な通知を飛ばす
 - mention された
 - review request された
 - review submitted された
+
+参考 https://developer.github.com/enterprise/2.19/v3/activity/events/types/
 """
 
 import logging
 import json
 import os
+import re
+import textwrap
 
 import slackweb
 
@@ -19,21 +23,88 @@ logger = logging.getLogger(__name__)
 
 SLACK_URL = os.getenv("SLACK_URL")
 
+MENTION_REGEXP = r"@\w+"
+
 
 def lambda_handler(event, context):
     _lambda_logging_init()
+    headers = event["headers"]
     body = event["body"]
+    logger.info(headers)
+    logger.info(body)
+    body = json.loads(body)
 
-    notify_slack()
+    handler_issue_pr_mentioned(headers, body)
+    handler_review_assigned(headers, body)
+    handler_reviewed(headers, body)
 
-    result = body
-    logger.info(result)
     return {"statusCode": 200, "body": json.dumps({"result": "ok"})}
 
 
-def notify_slack():
+def handler_review_assigned(headers: dict, body: dict):
+    github_event_kind = headers["X-GitHub-Event"]
+    pass
+
+
+def handler_reviewed(headers: dict, body: dict):
+    github_event_kind = headers["X-GitHub-Event"]
+    pass
+
+
+def handler_issue_pr_mentioned(headers: dict, body: dict):
+    """
+    Issue, PR の本文・コメントで mention されたら通知
+
+    :param headers:
+    :param body:
+    :return:
+    """
+    github_event_kind = headers["X-GitHub-Event"]
+    if github_event_kind == "issue" or github_event_kind == "pull_request":
+        data_key = github_event_kind
+    elif github_event_kind == "issue_comment":  # PR コメントも issue_comment で飛んでくる
+        data_key = "comment"
+    else:
+        return
+
+    # コメント本文から mentioned_user を取得
+    if body["action"] == "created":
+        mentioned_user = _find_mentioned_user(body[data_key]["body"])
+    elif body["action"] == "edited":
+        mentioned_user_all = _find_mentioned_user(body[data_key]["body"])
+        mentioned_user_before = _find_mentioned_user(body["changes"].get("body", {}).get("from", ""))
+        mentioned_user = mentioned_user_all - mentioned_user_before  # 新しく加わった mention だけを対象にする
+    else:
+        return  # deleted など、ほかイベントのときは何もしない
+
+    # 通知!
+    message_url = body[data_key]["url"]
+    commenter = body[data_key]["user"]["login"]
+    message = body[data_key]["body"]
+
+    for u in mentioned_user:
+        notify_message_format = textwrap.dedent("""
+        <{user}>, mentioned by {commenter} in {url}
+        ```
+        {message}
+        ```
+        """)
+        notify_message = notify_message_format.format(user=u, commenter=commenter, url=message_url, message=message)
+        notify_slack(notify_message)
+
+
+def _find_mentioned_user(text: str) -> set:
+    """
+    テキストから、 "@hogehoge" な文字列を探す
+    :param text:
+    :return: "@hogehoge" の set
+    """
+    return set(re.findall(MENTION_REGEXP, text))
+
+
+def notify_slack(text="Hi, <@smatsumoto>!"):
     slack = slackweb.Slack(url=SLACK_URL)
-    slack.notify(text="Hi, <@smatsumoto>!")
+    slack.notify(text=text)
 
 
 def _lambda_logging_init():
