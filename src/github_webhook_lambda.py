@@ -27,6 +27,11 @@ SLACK_URL = os.getenv("SLACK_URL")
 MENTION_REGEXP = r"@\w+"
 
 
+GITHUB_TO_SLACK = {
+    # "@smatsumt": "@smatsumoto"
+}
+
+
 def lambda_handler(event, context):
     _lambda_logging_init()
     headers = event["headers"]
@@ -61,13 +66,15 @@ def handler_review_requested(headers: dict, body: dict):
     message = body["pull_request"]["body"]
 
     for u in body["pull_request"]["requested_reviewers"]:
+        u_at = f"@{u['login']}"
+        user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
         <{user}>, review requested by {reviewee} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=u, reviewee=reviewee, url=message_url, message=message)
+        notify_message = notify_message_format.format(user=user, reviewee=reviewee, url=message_url, message=message)
         notify_slack(notify_message)
 
 
@@ -89,14 +96,16 @@ def handler_review_submitted(headers: dict, body: dict):
     reviewer = body["review"]["user"]["login"]
     message = body["review"].get("body") or ""
 
-    for u in body["pull_request"]["requested_reviewers"]:
+    for u in [body["pull_request"]["user"]]:
+        u_at = f"@{u['login']}"
+        user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
         <{user}>, review submitted by {reviewer} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=u, reviewer=reviewer, url=message_url, message=message)
+        notify_message = notify_message_format.format(user=user, reviewer=reviewer, url=message_url, message=message)
         notify_slack(notify_message)
 
 
@@ -132,14 +141,15 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     commenter = body[data_key]["user"]["login"]
     message = body[data_key]["body"]
 
-    for u in mentioned_user:
+    for u_at in mentioned_user:
+        user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
         <{user}>, mentioned by {commenter} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=u, commenter=commenter, url=message_url, message=message)
+        notify_message = notify_message_format.format(user=user, commenter=commenter, url=message_url, message=message)
         notify_slack(notify_message)
 
 
