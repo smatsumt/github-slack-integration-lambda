@@ -127,7 +127,7 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
         return
 
     # コメント本文から mentioned_user を取得
-    if body["action"] == "created":
+    if body["action"] == "opened" or body["action"] == "created":
         mentioned_user = _find_mentioned_user(body[data_key]["body"])
     elif body["action"] == "edited":
         mentioned_user_all = _find_mentioned_user(body[data_key]["body"])
