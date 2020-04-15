@@ -36,7 +36,7 @@ def lambda_handler(event, context):
 
     handler_issue_pr_mentioned(headers, body)
     handler_review_assigned(headers, body)
-    handler_reviewed(headers, body)
+    handler_review_submitted(headers, body)
 
     return {"statusCode": 200, "body": json.dumps({"result": "ok"})}
 
@@ -46,7 +46,7 @@ def handler_review_assigned(headers: dict, body: dict):
     pass
 
 
-def handler_reviewed(headers: dict, body: dict):
+def handler_review_submitted(headers: dict, body: dict):
     github_event_kind = headers["X-GitHub-Event"]
     pass
 
@@ -62,7 +62,8 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     github_event_kind = headers["X-GitHub-Event"]
     if github_event_kind == "issue" or github_event_kind == "pull_request":
         data_key = github_event_kind
-    elif github_event_kind == "issue_comment":  # PR コメントも issue_comment で飛んでくる
+    elif github_event_kind == "issue_comment" or github_event_kind == "pull_request_review_comment":
+        # PR コメントも issue_comment で飛んでくる
         data_key = "comment"
     else:
         return
