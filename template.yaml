@@ -16,8 +16,8 @@ Parameters:
     Description: Slack Web Hook URL
   ApplicationTag:
     Type: String
-    Description: Lambda のエイリアスに使用
-    Default: latest
+    Description: Lambda のエイリアス, API のステージに使用
+    Default: Prod
 
 Resources:
   GitHubWebhookFunction:
@@ -40,7 +40,7 @@ Resources:
   GitHubWebhookAPI:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Prod
+      StageName: !Ref ApplicationTag
 
 Outputs:
   GitHubHookURL:
