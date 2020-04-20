@@ -12,8 +12,9 @@ GitHub WebHook で呼び出され、Slack に必要な通知を飛ばす
       https://developer.github.com/enterprise/2.19/v3/activity/events/types/
 """
 
-import logging
+from collections import defaultdict
 import json
+import logging
 import os
 import re
 import textwrap
@@ -30,6 +31,16 @@ MENTION_REGEXP = r"@\w+"
 GITHUB_TO_SLACK = {
     # "@smatsumt": "@smatsumoto"
 }
+
+# 絵文字の dict
+NOTIFY_EMOTICON = defaultdict(lambda: ":bell:")
+NOTIFY_EMOTICON.update({
+    "mentioned": ":wave:",
+    "review_requested": ":triangular_flag_on_post:",
+    "commented": ":speech_baloon:",
+    "changes_requested": ":construction:",
+    "approved": ":white_check_mark:",
+})
 
 
 def lambda_handler(event, context):
@@ -65,17 +76,18 @@ def handler_review_requested(headers: dict, body: dict):
     message_url = body["pull_request"]["html_url"]
     reviewee = body["pull_request"]["user"]["login"]
     message = body["pull_request"]["body"]
+    icon = NOTIFY_EMOTICON["review_requested"]
 
     for u in body["pull_request"]["requested_reviewers"]:
         u_at = f"@{u['login']}"
         user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
-        <{user}>, review requested by {reviewee} in {url}
+        {icon} <{user}>, *review requested* by {reviewee} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=user, reviewee=reviewee, url=message_url, message=message)
+        notify_message = notify_message_format.format(icon=icon, user=user, reviewee=reviewee, url=message_url, message=message)
         notify_slack(notify_message)
 
 
@@ -98,17 +110,18 @@ def handler_review_submitted(headers: dict, body: dict):
     reviewer = body["review"]["user"]["login"]
     message = body["review"].get("body") or ""
     state = body["review"]["state"]
+    icon = NOTIFY_EMOTICON[state]
 
     for u in [body["pull_request"]["user"]]:
         u_at = f"@{u['login']}"
         user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
-        <{user}>, review {state} by {reviewer} in {url}
+        {icon} <{user}>, *review {state}* by {reviewer} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=user, state=state, reviewer=reviewer, url=message_url, message=message)
+        notify_message = notify_message_format.format(icon=icon, user=user, state=state, reviewer=reviewer, url=message_url, message=message)
         notify_slack(notify_message)
 
 
@@ -144,16 +157,17 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     message_url = body[data_key]["html_url"]
     commenter = body[data_key]["user"]["login"]
     message = body[data_key]["body"]
+    icon = NOTIFY_EMOTICON["mentioned"]
 
     for u_at in mentioned_user:
         user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
-        <{user}>, mentioned by {commenter} in {url}
+        {icon} <{user}>, *mentioned* by {commenter} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=user, commenter=commenter, url=message_url, message=message)
+        notify_message = notify_message_format.format(icon=icon, user=user, commenter=commenter, url=message_url, message=message)
         notify_slack(notify_message)
 
 
