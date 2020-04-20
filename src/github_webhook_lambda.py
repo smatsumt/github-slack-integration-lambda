@@ -61,6 +61,7 @@ def handler_review_requested(headers: dict, body: dict):
         return
 
     # 通知!
+    logger.info("handler_review_requested fired")
     message_url = body["pull_request"]["html_url"]
     reviewee = body["pull_request"]["user"]["login"]
     message = body["pull_request"]["body"]
@@ -92,20 +93,22 @@ def handler_review_submitted(headers: dict, body: dict):
         return
 
     # 通知!
+    logger.info("handler_review_submitted fired")
     message_url = body["review"]["html_url"]
     reviewer = body["review"]["user"]["login"]
     message = body["review"].get("body") or ""
+    state = body["review"]["state"]
 
     for u in [body["pull_request"]["user"]]:
         u_at = f"@{u['login']}"
         user = GITHUB_TO_SLACK.get(u_at, u_at)
         notify_message_format = textwrap.dedent("""
-        <{user}>, review submitted by {reviewer} in {url}
+        <{user}>, review {state} by {reviewer} in {url}
         ```
         {message}
         ```
         """)
-        notify_message = notify_message_format.format(user=user, reviewer=reviewer, url=message_url, message=message)
+        notify_message = notify_message_format.format(user=user, state=state, reviewer=reviewer, url=message_url, message=message)
         notify_slack(notify_message)
 
 
@@ -137,6 +140,7 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
         return  # deleted など、ほかイベントのときは何もしない
 
     # 通知!
+    logger.info("handler_issue_pr_mentioned fired")
     message_url = body[data_key]["html_url"]
     commenter = body[data_key]["user"]["login"]
     message = body[data_key]["body"]
@@ -170,6 +174,7 @@ def notify_slack(text: str):
     """
     slack = slackweb.Slack(url=SLACK_URL)
     slack.notify(text=text)
+    logger.info(f"slack notify: {text}")
 
 
 def _lambda_logging_init():
