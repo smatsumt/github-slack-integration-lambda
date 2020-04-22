@@ -37,7 +37,7 @@ NOTIFY_EMOTICON = defaultdict(lambda: ":bell:")
 NOTIFY_EMOTICON.update({
     "mentioned": ":wave:",
     "review_requested": ":triangular_flag_on_post:",
-    "commented": ":speech_baloon:",
+    "commented": ":speech_balloon:",
     "changes_requested": ":construction:",
     "approved": ":white_check_mark:",
 })
@@ -78,17 +78,16 @@ def handler_review_requested(headers: dict, body: dict):
     message = body["pull_request"]["body"]
     icon = NOTIFY_EMOTICON["review_requested"]
 
-    for u in body["pull_request"]["requested_reviewers"]:
-        u_at = f"@{u['login']}"
-        user = GITHUB_TO_SLACK.get(u_at, u_at)
-        notify_message_format = textwrap.dedent("""
-        {icon} <{user}>, *review requested* by {reviewee} in {url}
-        ```
-        {message}
-        ```
-        """)
-        notify_message = notify_message_format.format(icon=icon, user=user, reviewee=reviewee, url=message_url, message=message)
-        notify_slack(notify_message)
+    u_at = f"@{body['requested_reviewer']['login']}"
+    user = _mention_str([u_at])
+    notify_message_format = textwrap.dedent("""
+    {icon} {user}, *review requested* by {reviewee} in {url}
+    ```
+    {message}
+    ```
+    """)
+    notify_message = notify_message_format.format(icon=icon, user=user, reviewee=reviewee, url=message_url, message=message)
+    notify_slack(notify_message)
 
 
 def handler_review_submitted(headers: dict, body: dict):
@@ -112,17 +111,26 @@ def handler_review_submitted(headers: dict, body: dict):
     state = body["review"]["state"]
     icon = NOTIFY_EMOTICON[state]
 
-    for u in [body["pull_request"]["user"]]:
-        u_at = f"@{u['login']}"
-        user = GITHUB_TO_SLACK.get(u_at, u_at)
-        notify_message_format = textwrap.dedent("""
-        {icon} <{user}>, *review {state}* by {reviewer} in {url}
-        ```
-        {message}
-        ```
-        """)
-        notify_message = notify_message_format.format(icon=icon, user=user, state=state, reviewer=reviewer, url=message_url, message=message)
-        notify_slack(notify_message)
+    # 本人の reveiw_submit （コメント時に発生）は無視
+    reviewee = body["pull_request"]["user"]["login"]
+    if reviewer == reviewee:
+        logger.info(f"reviewer is same with reviewee, skiped. reviewer {reviewer}, reviewee {reviewee}")
+        return
+    # body がカラの commented も無視（別途、pull_request_review_comment が飛ぶので、そちらで
+    if not message:
+        logger.info(f"message is empty. skipped")
+        return
+
+    u_at = f"@{body['pull_request']['user']['login']}"
+    user = _mention_str([u_at])
+    notify_message_format = textwrap.dedent("""
+    {icon} {user}, *review {state}* by {reviewer} in {url}
+    ```
+    {message}
+    ```
+    """)
+    notify_message = notify_message_format.format(icon=icon, user=user, state=state, reviewer=reviewer, url=message_url, message=message)
+    notify_slack(notify_message)
 
 
 def handler_issue_pr_mentioned(headers: dict, body: dict):
@@ -143,8 +151,10 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
         return
 
     # コメント本文から mentioned_user を取得
+    is_new = False
     if body["action"] == "opened" or body["action"] == "created":
         mentioned_user = _find_mentioned_user(body[data_key]["body"])
+        is_new = True
     elif body["action"] == "edited":
         mentioned_user_all = _find_mentioned_user(body[data_key]["body"])
         mentioned_user_before = _find_mentioned_user(body["changes"].get("body", {}).get("from", ""))
@@ -159,16 +169,28 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     message = body[data_key]["body"]
     icon = NOTIFY_EMOTICON["mentioned"]
 
-    for u_at in mentioned_user:
-        user = GITHUB_TO_SLACK.get(u_at, u_at)
-        notify_message_format = textwrap.dedent("""
-        {icon} <{user}>, *mentioned* by {commenter} in {url}
-        ```
-        {message}
-        ```
-        """)
-        notify_message = notify_message_format.format(icon=icon, user=user, commenter=commenter, url=message_url, message=message)
-        notify_slack(notify_message)
+    # issue/PR 立てた人以外の新規コメントだったら、mention なくても立てた人に通知する
+    try:
+        owner = body.get("pull_request", body["issue"])["user"]["login"]
+        if owner != commenter and is_new:
+            mentioned_user.add(f"@{owner}")
+    except KeyError as e:
+        logger.info("getting owner failed. no pull request and issue", exc_info=e)
+        pass
+
+    if len(mentioned_user) < 1:  # 対象者なければ通知しない
+        logger.info("no mentioned_user. skipped")
+        return
+
+    user = _mention_str(mentioned_user)
+    notify_message_format = textwrap.dedent("""
+    {icon} {user}, *mentioned* by {commenter} in {url}
+    ```
+    {message}
+    ```
+    """)
+    notify_message = notify_message_format.format(icon=icon, user=user, commenter=commenter, url=message_url, message=message)
+    notify_slack(notify_message)
 
 
 def _find_mentioned_user(text: str) -> set:
@@ -178,6 +200,17 @@ def _find_mentioned_user(text: str) -> set:
     :return: "@hogehoge" の set
     """
     return set(re.findall(MENTION_REGEXP, text))
+
+
+def _mention_str(users) -> str:
+    """
+    ユーザ名の list から、mention 用文字列を生成
+    :param users:
+    :return:
+    """
+    uid_mention_strs = [f"<{GITHUB_TO_SLACK.get(x, x)}>" for x in users]
+    r = " ".join(uid_mention_strs)
+    return r
 
 
 def notify_slack(text: str):
