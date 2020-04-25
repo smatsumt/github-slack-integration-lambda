@@ -21,6 +21,8 @@ import textwrap
 
 import slackweb
 
+import notify_record
+
 logger = logging.getLogger(__name__)
 
 SLACK_URL = os.getenv("SLACK_URL")
@@ -78,8 +80,15 @@ def handler_review_requested(headers: dict, body: dict):
     message = body["pull_request"]["body"]
     icon = NOTIFY_EMOTICON["review_requested"]
 
-    u_at = f"@{body['requested_reviewer']['login']}"
-    user = _mention_str([u_at])
+    reviewers_at = [f"@{x['login']}" for x in body["pull_request"]["requested_reviewers"]]
+    records = notify_record.load()
+    targets = set(reviewers_at) - set(records[body["pull_request"]["id"]]["reviewers"])
+    records[body["pull_request"]["id"]] = {"reviewers": reviewers_at}
+    notify_record.store()
+    user = _mention_str(targets)
+    if len(user) < 1:  # 対象者なければ通知しない
+        logger.info("no mentioned_user. skipped")
+        return
     if message:
         message = f"```{message}```"
     notify_message_format = textwrap.dedent("""

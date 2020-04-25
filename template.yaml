@@ -26,6 +26,7 @@ Resources:
       CodeUri: src
       Handler: github_webhook_lambda.lambda_handler
       AutoPublishAlias: !Ref StageTag
+      ReservedConcurrentExecutions: 1  # Set 1 to ensure always same instance is used
       Environment:
         Variables:
           SLACK_URL: !Ref SlackURL
