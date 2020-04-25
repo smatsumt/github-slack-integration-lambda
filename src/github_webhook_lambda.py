@@ -80,11 +80,11 @@ def handler_review_requested(headers: dict, body: dict):
 
     u_at = f"@{body['requested_reviewer']['login']}"
     user = _mention_str([u_at])
+    if message:
+        message = f"```{message}```"
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review requested* by {reviewee} in {url}
-    ```
     {message}
-    ```
     """)
     notify_message = notify_message_format.format(icon=icon, user=user, reviewee=reviewee, url=message_url, message=message)
     notify_slack(notify_message)
@@ -116,18 +116,14 @@ def handler_review_submitted(headers: dict, body: dict):
     if reviewer == reviewee:
         logger.info(f"reviewer is same with reviewee, skiped. reviewer {reviewer}, reviewee {reviewee}")
         return
-    # body がカラの commented も無視（別途、pull_request_review_comment が飛ぶので、そちらで
-    if not message:
-        logger.info(f"message is empty. skipped")
-        return
 
     u_at = f"@{body['pull_request']['user']['login']}"
     user = _mention_str([u_at])
+    if message:
+        message = f"```{message}```"
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review {state}* by {reviewer} in {url}
-    ```
     {message}
-    ```
     """)
     notify_message = notify_message_format.format(icon=icon, user=user, state=state, reviewer=reviewer, url=message_url, message=message)
     notify_slack(notify_message)
@@ -151,10 +147,8 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
         return
 
     # コメント本文から mentioned_user を取得
-    is_new = False
     if body["action"] == "opened" or body["action"] == "created":
         mentioned_user = _find_mentioned_user(body[data_key]["body"])
-        is_new = True
     elif body["action"] == "edited":
         mentioned_user_all = _find_mentioned_user(body[data_key]["body"])
         mentioned_user_before = _find_mentioned_user(body["changes"].get("body", {}).get("from", ""))
@@ -169,25 +163,15 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     message = body[data_key]["body"]
     icon = NOTIFY_EMOTICON["mentioned"]
 
-    # issue/PR 立てた人以外の新規コメントだったら、mention なくても立てた人に通知する
-    try:
-        owner = body.get("pull_request", body["issue"])["user"]["login"]
-        if owner != commenter and is_new:
-            mentioned_user.add(f"@{owner}")
-    except KeyError as e:
-        logger.info("getting owner failed. no pull request and issue", exc_info=e)
-        pass
-
-    if len(mentioned_user) < 1:  # 対象者なければ通知しない
+    user = _mention_str(mentioned_user)
+    if len(user) < 1:  # 対象者なければ通知しない
         logger.info("no mentioned_user. skipped")
         return
-
-    user = _mention_str(mentioned_user)
+    if message:
+        message = f"```{message}```"
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *mentioned* by {commenter} in {url}
-    ```
     {message}
-    ```
     """)
     notify_message = notify_message_format.format(icon=icon, user=user, commenter=commenter, url=message_url, message=message)
     notify_slack(notify_message)
@@ -199,7 +183,7 @@ def _find_mentioned_user(text: str) -> set:
     :param text:
     :return: "@hogehoge" の set
     """
-    return set(re.findall(MENTION_REGEXP, text))
+    return set(re.findall(MENTION_REGEXP, text or ""))
 
 
 def _mention_str(users) -> str:
@@ -208,7 +192,8 @@ def _mention_str(users) -> str:
     :param users:
     :return:
     """
-    uid_mention_strs = [f"<{GITHUB_TO_SLACK.get(x, x)}>" for x in users]
+    # 対象は GITHUB_TO_SLACK 登録済みユーザのみ
+    uid_mention_strs = [f"<{GITHUB_TO_SLACK[x]}>" for x in users if x in GITHUB_TO_SLACK]
     r = " ".join(uid_mention_strs)
     return r
 
