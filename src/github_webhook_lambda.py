@@ -82,7 +82,9 @@ def handler_review_requested(headers: dict, body: dict):
 
     reviewers_at = [f"@{x['login']}" for x in body["pull_request"]["requested_reviewers"]]
     records = notify_record.load()
-    targets = set(reviewers_at) - set(records[body["pull_request"]["id"]]["reviewers"])
+    notified_reviewers = records.get(body["pull_request"]["id"], {}).get("reviewers", [])
+    logger.info(f"notified_reviewers = {notified_reviewers}")
+    targets = set(reviewers_at) - set(notified_reviewers)
     records[body["pull_request"]["id"]] = {"reviewers": reviewers_at}
     notify_record.store()
     user = _mention_str(targets)
