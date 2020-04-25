@@ -26,9 +26,21 @@ def load():
     if record_file.exists():
         contents = json.loads(record_file.read_text())
         g_record_dict = contents["records"]
+        logger.info(f"loaded {g_record_dict}")
+    else:
+        logger.info(f"{RECORD_FILE} does not exist")
     return g_record_dict
 
 
+def query_pr_reviewers(pr_id):
+    return g_record_dict.get(str(pr_id), {}).get("reviewers", [])  # JSON 保存時の数値が文字列になるので、文字列で統一する
+
+
+def insert_pr_reviewers(pr_id, reviewers):
+    g_record_dict[str(pr_id)] = {"reviewers": reviewers}  # JSON 保存時の数値が文字列になるので、文字列で統一する
+
+
 def store():
+    logger.info(f"storeing info {g_record_dict}")
     record_file = Path(RECORD_FILE)
     record_file.write_text(json.dumps({"records": g_record_dict}))

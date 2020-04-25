@@ -81,11 +81,11 @@ def handler_review_requested(headers: dict, body: dict):
     icon = NOTIFY_EMOTICON["review_requested"]
 
     reviewers_at = [f"@{x['login']}" for x in body["pull_request"]["requested_reviewers"]]
-    records = notify_record.load()
-    notified_reviewers = records.get(body["pull_request"]["id"], {}).get("reviewers", [])
+    notify_record.load()
+    notified_reviewers = notify_record.query_pr_reviewers(body["pull_request"]["id"])
     logger.info(f"notified_reviewers = {notified_reviewers}")
     targets = set(reviewers_at) - set(notified_reviewers)
-    records[body["pull_request"]["id"]] = {"reviewers": reviewers_at}
+    notify_record.insert_pr_reviewers(body["pull_request"]["id"], reviewers_at)
     notify_record.store()
     user = _mention_str(targets)
     if len(user) < 1:  # 対象者なければ通知しない
