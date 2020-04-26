@@ -13,8 +13,13 @@ AWS Lambda / API Gateway を利用しています。CloudFormation により、�
 ### デプロイ方法
 
 ```shell
+cp config-sample.json config.json
+vi config.json  # GitHub ユーザ名 -> Slack メンバーID の対応を設定してください
 make
 ```
+
+"Slack メンバー ID" は "U3KFKE98F" といった文字列です。ユーザ名ではありません（Slack API の仕様変更で、メンションをするにはメンバーIDが必須になりました。）
+メンバー ID は、各ユーザのプロフィールから調べることができます。設定ファイルでは先頭に "@" をつけるようにしてください。
 
 初回はいくつかの設定項目が聞かれます。"SlackURL" には、通知を飛ばすチャンネル用の Slack WebHook URL を指定してください。
 
