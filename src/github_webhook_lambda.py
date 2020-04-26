@@ -27,9 +27,8 @@ import notify_record
 logger = logging.getLogger(__name__)
 
 SLACK_URL = os.getenv("SLACK_URL")
-
 MENTION_REGEXP = r"@\w+"
-
+CONFIG_FILE = "config.json"
 
 GITHUB_TO_SLACK = {}
 
@@ -42,18 +41,6 @@ NOTIFY_EMOTICON.update({
     "changes_requested": ":construction:",
     "approved": ":white_check_mark:",
 })
-
-CONFIG_FILE = "config.json"
-
-
-def _load_config():
-    global GITHUB_TO_SLACK
-    if GITHUB_TO_SLACK:
-        return  # ロード済みなら何もしない
-
-    conf_path = Path(CONFIG_FILE)
-    conf = json.loads(conf_path.read_text())
-    GITHUB_TO_SLACK = conf["github_to_slack"]
 
 
 def lambda_handler(event, context):
@@ -201,6 +188,27 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     notify_slack(notify_message)
 
 
+def notify_slack(text: str):
+    """
+    mention する場合、 "<@username>" と <> で囲う必要があることに注意
+    :param text: Slack に入れる文字列
+    :return:
+    """
+    slack = slackweb.Slack(url=SLACK_URL)
+    slack.notify(text=text)
+    logger.info(f"slack notify: {text}")
+
+
+def _load_config():
+    global GITHUB_TO_SLACK
+    if GITHUB_TO_SLACK:
+        return  # ロード済みなら何もしない
+
+    conf_path = Path(CONFIG_FILE)
+    conf = json.loads(conf_path.read_text())
+    GITHUB_TO_SLACK = conf["github_to_slack"]
+
+
 def _find_mentioned_user(text: str) -> set:
     """
     テキストから、 "@hogehoge" な文字列を探す
@@ -220,17 +228,6 @@ def _mention_str(users) -> str:
     uid_mention_strs = [f"<{GITHUB_TO_SLACK[x]}>" for x in users if x in GITHUB_TO_SLACK]
     r = " ".join(uid_mention_strs)
     return r
-
-
-def notify_slack(text: str):
-    """
-    mention する場合、 "<@username>" と <> で囲う必要があることに注意
-    :param text: Slack に入れる文字列
-    :return:
-    """
-    slack = slackweb.Slack(url=SLACK_URL)
-    slack.notify(text=text)
-    logger.info(f"slack notify: {text}")
 
 
 def _lambda_logging_init():
