@@ -16,6 +16,7 @@ from collections import defaultdict
 import json
 import logging
 import os
+from pathlib import Path
 import re
 import textwrap
 
@@ -30,9 +31,7 @@ SLACK_URL = os.getenv("SLACK_URL")
 MENTION_REGEXP = r"@\w+"
 
 
-GITHUB_TO_SLACK = {
-    # "@smatsumt": "@smatsumoto"
-}
+GITHUB_TO_SLACK = {}
 
 # 絵文字の dict
 NOTIFY_EMOTICON = defaultdict(lambda: ":bell:")
@@ -44,9 +43,23 @@ NOTIFY_EMOTICON.update({
     "approved": ":white_check_mark:",
 })
 
+CONFIG_FILE = "config.json"
+
+
+def _load_config():
+    global GITHUB_TO_SLACK
+    if GITHUB_TO_SLACK:
+        return  # ロード済みなら何もしない
+
+    conf_path = Path(CONFIG_FILE)
+    conf = json.loads(conf_path.read_text())
+    GITHUB_TO_SLACK = conf["github_to_slack"]
+
 
 def lambda_handler(event, context):
     _lambda_logging_init()
+    _load_config()
+
     headers = event["headers"]
     body = event["body"]
     logger.info(headers)
