@@ -84,6 +84,8 @@ def handler_review_requested(headers: dict, body: dict):
     notify_record.load()
     notified_reviewers = notify_record.query_pr_reviewers(body["pull_request"]["id"])
     logger.info(f"notified_reviewers = {notified_reviewers}")
+    if len(notified_reviewers) < 1:
+        message = ""  # すでに他の人に通知済みなら message は削除する（二重になるため）
     targets = set(reviewers_at) - set(notified_reviewers)
     notify_record.insert_pr_reviewers(body["pull_request"]["id"], reviewers_at)
     notify_record.store()
