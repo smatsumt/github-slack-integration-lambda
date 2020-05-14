@@ -48,6 +48,12 @@ make reconfigure
     1. “Subscribe to events” に “Issue comment”, "Issues", "Pull request", "Pull request review", "Pull request review comment" をチェック
     1. "Create GitHub App" をクリック
 1. private key の生成を促されるので、生成する
+1. 通知を有効にするリポジトリに、設定した GitHub App をインストール
+    1. 右上のユーザアイコンをクリックし、出てくるメニューから "Settings" をクリック
+    1. 左側のメニューから "Developer settings" をクリック
+    1. 先程作った App があるので、"Edit" をクリック
+    1. 左側のメニューから "Install App" をクリック
+    1. インストールするリポジトリを選択
 
 #### 単発のリポジトリにのみ設定 (リポジトリの WebHook として登録)
 
