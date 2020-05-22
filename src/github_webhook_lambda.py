@@ -86,21 +86,18 @@ def handler_review_requested(headers: dict, body: dict):
     logger.info(f"notified_reviewers = {notified_reviewers}")
     if len(notified_reviewers) < 1:
         message = ""  # すでに他の人に通知済みなら message は削除する（二重になるため）
-    targets = set(reviewers_at) - set(notified_reviewers)
+    targets = sorted(set(reviewers_at) - set(notified_reviewers))
     notify_record.insert_pr_reviewers(body["pull_request"]["id"], reviewers_at)
     notify_record.store()
     user = _mention_str(targets)
     if len(user) < 1:  # 対象者なければ通知しない
         logger.info("no mentioned_user. skipped")
         return
-    if message:
-        message = f"```{message}```"
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review requested* by {reviewee} in {url}
-    {message}
-    """)
-    notify_message = notify_message_format.format(icon=icon, user=user, reviewee=reviewee, url=message_url, message=message)
-    notify_slack(notify_message)
+    """).strip()
+    notify_message = notify_message_format.format(icon=icon, user=user, reviewee=reviewee, url=message_url)
+    notify_slack(notify_message, attach_message=message)
 
 
 def handler_review_submitted(headers: dict, body: dict):
@@ -132,14 +129,11 @@ def handler_review_submitted(headers: dict, body: dict):
 
     u_at = f"@{body['pull_request']['user']['login']}"
     user = _mention_str([u_at])
-    if message:
-        message = f"```{message}```"
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review {state}* by {reviewer} in {url}
-    {message}
-    """)
-    notify_message = notify_message_format.format(icon=icon, user=user, state=state, reviewer=reviewer, url=message_url, message=message)
-    notify_slack(notify_message)
+    """).strip()
+    notify_message = notify_message_format.format(icon=icon, user=user, state=state, reviewer=reviewer, url=message_url)
+    notify_slack(notify_message, attach_message=message)
 
 
 def handler_issue_pr_mentioned(headers: dict, body: dict):
@@ -180,25 +174,35 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     if len(user) < 1:  # 対象者なければ通知しない
         logger.info("no mentioned_user. skipped")
         return
-    if message:
-        message = f"```{message}```"
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *mentioned* by {commenter} in {url}
-    {message}
-    """)
-    notify_message = notify_message_format.format(icon=icon, user=user, commenter=commenter, url=message_url, message=message)
-    notify_slack(notify_message)
+    """).strip()
+    notify_message = notify_message_format.format(icon=icon, user=user, commenter=commenter, url=message_url)
+    notify_slack(notify_message, attach_message=message)
 
 
-def notify_slack(text: str):
+def notify_slack(text: str, attach_message: str = None):
     """
     mention する場合、 "<@username>" と <> で囲う必要があることに注意
     :param text: Slack に入れる文字列
+    :param attach_message: attachment としてつける文字列
     :return:
     """
     slack = slackweb.Slack(url=SLACK_URL)
-    slack.notify(text=text)
-    logger.info(f"slack notify: {text}")
+    if not attach_message:
+        slack.notify(text=text)
+        logger.info(f"slack notify: {text}")
+    else:
+        attachments = [
+            {
+                "mrkdwn_in": ["text"],
+                "color": "#36a64f",
+                "text": attach_message
+            }
+        ]
+        slack.notify(text=text, attachments=attachments)
+        logger.info(f"slack notify: {text}")
+        logger.info(f"slack notify as attachment: {attach_message}")
 
 
 def _load_config():
