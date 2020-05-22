@@ -3,3 +3,5 @@ venv
 .aws-sam
 samconfig.toml
 config.json
+
+tmp
