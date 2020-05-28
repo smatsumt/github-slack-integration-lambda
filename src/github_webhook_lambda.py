@@ -73,26 +73,30 @@ def handler_review_requested(headers: dict, body: dict):
     if body["action"] != "review_requested":
         return
 
-    # 通知!
     logger.info("handler_review_requested fired")
     message_url = body["pull_request"]["html_url"]
     reviewee = body["pull_request"]["user"]["login"]
     message = body["pull_request"]["body"]
     icon = NOTIFY_EMOTICON["review_requested"]
-
     reviewers_at = [f"@{x['login']}" for x in body["pull_request"]["requested_reviewers"]]
+
+    # 送信済み mention のチェック
     notify_record.load()
     notified_reviewers = notify_record.query_pr_reviewers(body["pull_request"]["id"])
     logger.info(f"notified_reviewers = {notified_reviewers}")
     if len(notified_reviewers) < 1:
         message = ""  # すでに他の人に通知済みなら message は削除する（二重になるため）
-    targets = sorted(set(reviewers_at) - set(notified_reviewers))
+    targets = set(reviewers_at) - set(notified_reviewers)  # 通知する人は追加分のみ
+    # 通知済みの人の記録を追加
     notify_record.insert_pr_reviewers(body["pull_request"]["id"], reviewers_at)
     notify_record.store()
-    user = _mention_str(targets)
-    if len(user) < 1:  # 対象者なければ通知しない
+
+    if len(targets) < 1:  # 対象者なければ通知しない
         logger.info("no mentioned_user. skipped")
         return
+
+    # 通知!
+    user = _mention_str(sorted(targets))
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review requested* by {reviewee} in {url}
     """).strip()
@@ -113,7 +117,6 @@ def handler_review_submitted(headers: dict, body: dict):
     if body["action"] != "submitted":
         return
 
-    # 通知!
     logger.info("handler_review_submitted fired")
     message_url = body["review"]["html_url"]
     reviewer = body["review"]["user"]["login"]
@@ -131,8 +134,10 @@ def handler_review_submitted(headers: dict, body: dict):
         logger.info(f"reviewer is same with reviewee, skiped. reviewer {reviewer}, reviewee {reviewee}")
 
     if len(mentioned_user) < 1:  # mention 先がなければ何もしない
+        logger.info("no mentioned_user. skipped")
         return
 
+    # 通知!
     user = _mention_str(sorted(mentioned_user))
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review {state}* by {reviewer} in {url}
@@ -168,17 +173,18 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     else:
         return  # deleted など、ほかイベントのときは何もしない
 
-    # 通知!
     logger.info("handler_issue_pr_mentioned fired")
     message_url = body[data_key]["html_url"]
     commenter = body[data_key]["user"]["login"]
     message = body[data_key]["body"]
     icon = NOTIFY_EMOTICON["mentioned"]
 
-    user = _mention_str(mentioned_user)
-    if len(user) < 1:  # 対象者なければ通知しない
+    if len(mentioned_user) < 1:  # 対象者なければ通知しない
         logger.info("no mentioned_user. skipped")
         return
+
+    # 通知!
+    user = _mention_str(sorted(mentioned_user))
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *mentioned* by {commenter} in {url}
     """).strip()
