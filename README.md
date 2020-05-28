@@ -63,3 +63,9 @@ make reconfigure
     1. "Content Type" には "application/json" を指定してください。
     1. "Which events would you like to trigger this webhook?" には、"Let me select individual events." を選び、"Issue comments", "Issues", "Pull requests", "Pull request reviews", "Pull request review comments" にチェックを入れてください。
 
+## 参考情報
+
+- Slack メッセージのフォーマット関連
+    - [Sending messages using Incoming Webhooks \| Slack](https://api.slack.com/messaging/webhooks#)
+    - [Creating rich message layouts \| Slack](https://api.slack.com/messaging/composing/layouts#attachments)
+    - [Reference: Secondary message attachments \| Slack](https://api.slack.com/reference/messaging/attachments)
