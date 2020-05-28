@@ -96,3 +96,19 @@ def test_handler_review_submitted(monkeypatch):
     assert kwargs["attach_message"] == "yappari comment"
 
 
+def test_handler_review_submitted_with_mention(monkeypatch):
+    """ handler_issue_pr_mentioned にサンプル入力を入れて動作確認 """
+    mentioned_header_path = SCRIPT_PATH.parent / "testdata/review-submitted-header.json"
+    mentioned_body_path = SCRIPT_PATH.parent / "testdata/review-submitted-body-with-mention.json"
+    header = json.loads(mentioned_header_path.read_text())
+    body = json.loads(mentioned_body_path.read_text())
+
+    import github_webhook_lambda
+    mock = MagicMock()
+    monkeypatch.setattr(github_webhook_lambda, "GITHUB_TO_SLACK", {"@smatsumt": "@smatsumt", "@smatsumt2": "@smatsumt2"})
+    monkeypatch.setattr(github_webhook_lambda, "notify_slack", mock)
+    r = github_webhook_lambda.handler_review_submitted(header, body)
+
+    args, kwargs = mock.call_args
+    assert args[0] == ':speech_balloon: <@smatsumt> <@smatsumt2>, *review commented* by skawagt in https://github.com/smatsumt/testrepo2/pull/2#pullrequestreview-394584166'
+    assert kwargs["attach_message"] == "@smatsumt2 yappari comment"

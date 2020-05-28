@@ -121,14 +121,19 @@ def handler_review_submitted(headers: dict, body: dict):
     state = body["review"]["state"]
     icon = NOTIFY_EMOTICON[state]
 
-    # 本人の reveiw_submit （コメント時に発生）は無視
+    mentioned_user = _find_mentioned_user(message)
+    # 本人の reveiw_submit （コメント時に発生）でなければ、mention 先に reviewee を加える
     reviewee = body["pull_request"]["user"]["login"]
-    if reviewer == reviewee:
+    if reviewer != reviewee:
+        u_at = f"@{body['pull_request']['user']['login']}"
+        mentioned_user.add(u_at)
+    else:
         logger.info(f"reviewer is same with reviewee, skiped. reviewer {reviewer}, reviewee {reviewee}")
+
+    if len(mentioned_user) < 1:  # mention 先がなければ何もしない
         return
 
-    u_at = f"@{body['pull_request']['user']['login']}"
-    user = _mention_str([u_at])
+    user = _mention_str(sorted(mentioned_user))
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review {state}* by {reviewer} in {url}
     """).strip()
