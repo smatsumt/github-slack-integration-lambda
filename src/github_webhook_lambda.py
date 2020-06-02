@@ -91,12 +91,11 @@ def handler_review_requested(headers: dict, body: dict):
     notify_record.insert_pr_reviewers(body["pull_request"]["id"], reviewers_at)
     notify_record.store()
 
-    if len(targets) < 1:  # 対象者なければ通知しない
-        logger.info("no mentioned_user. skipped")
-        return
-
     # 通知!
     user = _mention_str(sorted(targets))
+    if len(user) < 1:  # 対象者なければ通知しない
+        logger.info("no mentioned_user. skipped")
+        return
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review requested* by {reviewee} in {url}
     """).strip()
@@ -133,12 +132,11 @@ def handler_review_submitted(headers: dict, body: dict):
     else:
         logger.info(f"reviewer is same with reviewee, skiped. reviewer {reviewer}, reviewee {reviewee}")
 
-    if len(mentioned_user) < 1:  # mention 先がなければ何もしない
-        logger.info("no mentioned_user. skipped")
-        return
-
     # 通知!
     user = _mention_str(sorted(mentioned_user))
+    if len(user) < 1:  # mention 先がなければ何もしない
+        logger.info("no mentioned_user. skipped")
+        return
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *review {state}* by {reviewer} in {url}
     """).strip()
@@ -179,12 +177,11 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     message = body[data_key]["body"]
     icon = NOTIFY_EMOTICON["mentioned"]
 
-    if len(mentioned_user) < 1:  # 対象者なければ通知しない
-        logger.info("no mentioned_user. skipped")
-        return
-
     # 通知!
     user = _mention_str(sorted(mentioned_user))
+    if len(user) < 1:  # 対象者なければ通知しない
+        logger.info("no mentioned_user. skipped")
+        return
     notify_message_format = textwrap.dedent("""
     {icon} {user}, *mentioned* by {commenter} in {url}
     """).strip()
