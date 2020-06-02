@@ -57,8 +57,8 @@ def test_handler_issue_pr_mentioned(monkeypatch):
     assert kwargs["attach_message"] == "@smatsumt "
 
 
-def test_handler_issue_pr_mentioned_no_rel(monkeypatch):
-    """ handler_issue_pr_mentioned にサンプル入力を入れて動作確認 """
+def test_handler_issue_pr_mentioned_no_slack_user(monkeypatch):
+    """ handler_issue_pr_mentioned にサンプル入力を入れて動作確認 - slack id がない場合は通知なし """
     mentioned_header_path = SCRIPT_PATH.parent / "testdata/mentioned-header.json"
     mentioned_body_path = SCRIPT_PATH.parent / "testdata/mentioned-body.json"
     header = json.loads(mentioned_header_path.read_text())
