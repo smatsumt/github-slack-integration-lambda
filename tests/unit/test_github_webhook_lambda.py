@@ -57,6 +57,22 @@ def test_handler_issue_pr_mentioned(monkeypatch):
     assert kwargs["attach_message"] == "@smatsumt "
 
 
+def test_handler_issue_pr_mentioned_no_rel(monkeypatch):
+    """ handler_issue_pr_mentioned にサンプル入力を入れて動作確認 """
+    mentioned_header_path = SCRIPT_PATH.parent / "testdata/mentioned-header.json"
+    mentioned_body_path = SCRIPT_PATH.parent / "testdata/mentioned-body.json"
+    header = json.loads(mentioned_header_path.read_text())
+    body = json.loads(mentioned_body_path.read_text())
+
+    import github_webhook_lambda
+    mock = MagicMock()
+    monkeypatch.setattr(github_webhook_lambda, "GITHUB_TO_SLACK", {})
+    monkeypatch.setattr(github_webhook_lambda, "notify_slack", mock)
+    r = github_webhook_lambda.handler_issue_pr_mentioned(header, body)
+
+    assert not mock.called
+
+
 def test_handler_review_requested(monkeypatch):
     """ handler_issue_pr_mentioned にサンプル入力を入れて動作確認 """
     mentioned_header_path = SCRIPT_PATH.parent / "testdata/review-requested-header.json"
