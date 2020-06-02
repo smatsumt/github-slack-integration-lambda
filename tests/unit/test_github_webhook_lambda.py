@@ -48,13 +48,13 @@ def test_handler_issue_pr_mentioned(monkeypatch):
 
     import github_webhook_lambda
     mock = MagicMock()
-    monkeypatch.setattr(github_webhook_lambda, "GITHUB_TO_SLACK", {"@smatsumt": "@smatsumt"})
+    monkeypatch.setattr(github_webhook_lambda, "GITHUB_TO_SLACK", {"@smatsumt": "@smatsumt", "@smatsumt2": "@smatsumt2"})
     monkeypatch.setattr(github_webhook_lambda, "notify_slack", mock)
     r = github_webhook_lambda.handler_issue_pr_mentioned(header, body)
 
     args, kwargs = mock.call_args
-    assert args[0] == ":wave: <@smatsumt>, *mentioned* by smatsumt in https://github.com/smatsumt/testrepo2/issues/1#issuecomment-619470010"
-    assert kwargs["attach_message"] == "@smatsumt "
+    assert args[0] == ":wave: <@smatsumt2>, *mentioned* by smatsumt in https://github.com/smatsumt/testrepo2/issues/1#issuecomment-619470010"
+    assert kwargs["attach_message"] == "@smatsumt and @smatsumt2, you are mentioned."
 
 
 def test_handler_issue_pr_mentioned_no_slack_user(monkeypatch):

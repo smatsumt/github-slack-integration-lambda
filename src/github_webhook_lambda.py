@@ -177,6 +177,9 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     message = body[data_key]["body"]
     icon = NOTIFY_EMOTICON["mentioned"]
 
+    # コメント本人を通知先から除外（引用内にある場合など）
+    mentioned_user.discard(f"@{commenter}")
+
     # 通知!
     user = _mention_str(sorted(mentioned_user))
     if len(user) < 1:  # 対象者なければ通知しない
