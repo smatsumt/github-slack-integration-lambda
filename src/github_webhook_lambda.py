@@ -113,7 +113,7 @@ def handler_review_submitted(headers: dict, body: dict):
     github_event_kind = headers["X-GitHub-Event"]
     if github_event_kind != "pull_request_review":
         return
-    if body["action"] != "submitted":
+    if body["action"] != "submitted" and body["action"] != "edited":
         return
 
     logger.info("handler_review_submitted fired")
