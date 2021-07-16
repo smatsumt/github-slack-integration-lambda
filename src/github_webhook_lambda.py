@@ -153,8 +153,10 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     :return:
     """
     github_event_kind = headers["X-GitHub-Event"]
-    if github_event_kind == "issue" or github_event_kind == "pull_request":
-        data_key = github_event_kind
+    if github_event_kind == "issues":
+        data_key = "issue"
+    elif github_event_kind == "pull_request":
+        data_key = "pull_request"
     elif github_event_kind == "issue_comment" or github_event_kind == "pull_request_review_comment":
         # PR コメントも issue_comment で飛んでくる
         data_key = "comment"
