@@ -65,7 +65,14 @@ make reconfigure
 
 ## 参考情報
 
-- Slack メッセージのフォーマット関連
-    - [Sending messages using Incoming Webhooks \| Slack](https://api.slack.com/messaging/webhooks#)
-    - [Creating rich message layouts \| Slack](https://api.slack.com/messaging/composing/layouts#attachments)
-    - [Reference: Secondary message attachments \| Slack](https://api.slack.com/reference/messaging/attachments)
+### GitHub からのメッセージ
+
+GitHub App として連携すると、各種イベントが発生したときに "Webhook URL" にイベントが送付されます。
+
+イベントの例は [tests/testdata](tests/testdata) にある各種 json ファイルにありますので、そちらを参照ください。
+
+### Slack メッセージのフォーマット関連
+
+- [Sending messages using Incoming Webhooks \| Slack](https://api.slack.com/messaging/webhooks#)
+- [Creating rich message layouts \| Slack](https://api.slack.com/messaging/composing/layouts#attachments)
+- [Reference: Secondary message attachments \| Slack](https://api.slack.com/reference/messaging/attachments)
