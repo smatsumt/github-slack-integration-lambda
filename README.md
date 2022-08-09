@@ -65,6 +65,12 @@ make reconfigure
 
 ## 参考情報
 
+### 基本的な流れ
+
+デプロイが完了すると、GitHub に PR やメンションつきのメッセージがくると、github_webhook_lambda.py をソースとする lambda が呼び出されます。
+
+github_webhook_lambda.py では、GitHub のイベント情報 (JSON 形式) を読み取って、必要であれば Slack に通知を投げます。通知先 URL はデプロイ時のパラメータ "SlackURL" で設定した箇所になります。
+
 ### GitHub からのメッセージ
 
 GitHub App として連携すると、各種イベントが発生したときに "Webhook URL" にイベントが送付されます。
