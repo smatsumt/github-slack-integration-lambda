@@ -45,14 +45,17 @@ NOTIFY_EMOTICON.update({
 
 def lambda_handler(event, context):
     _lambda_logging_init()
-    _load_config()
+    _load_config()  # config.json を GITHUB_TO_SLACK グローバル変数に読み込み
 
+    # メッセージの読み込み + ログ出力
     headers = event["headers"]
     body = event["body"]
     logger.info(headers)
     logger.info(body)
     body = json.loads(body)
 
+    # 各種ハンドラの呼び出し
+    #   各ハンドラは対象外のメッセージがきたら何もせず return するので、とにかく呼び出して OK
     handler_issue_pr_mentioned(headers, body)
     handler_review_requested(headers, body)
     handler_review_submitted(headers, body)
@@ -60,19 +63,21 @@ def lambda_handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"result": "ok"})}
 
 
-def handler_review_requested(headers: dict, body: dict):
+def handler_review_requested(headers: dict, body: dict) -> None:
     """
-    review_requested されたら通知
+    review_requested されたら通知 - 対象外のメッセージについては何もしない
     :param headers:
     :param body:
     :return:
     """
+    # 処理すべきメッセージかどうかをチェック
     github_event_kind = headers["X-GitHub-Event"]
     if github_event_kind != "pull_request":
         return
     if body["action"] != "review_requested":
         return
 
+    # メッセージから各種情報を読みこみ
     logger.info("handler_review_requested fired")
     message_url = body["pull_request"]["html_url"]
     reviewee = body["pull_request"]["user"]["login"]
@@ -103,19 +108,21 @@ def handler_review_requested(headers: dict, body: dict):
     notify_slack(notify_message, attach_message=message)
 
 
-def handler_review_submitted(headers: dict, body: dict):
+def handler_review_submitted(headers: dict, body: dict) -> None:
     """
-    review が submit されたときに通知
+    review が submit されたときに通知 - 対象外のメッセージについては何もしない
     :param headers:
     :param body:
     :return:
     """
+    # 処理すべきメッセージかどうかをチェック
     github_event_kind = headers["X-GitHub-Event"]
     if github_event_kind != "pull_request_review":
         return
     if body["action"] != "submitted" and body["action"] != "edited":
         return
 
+    # メッセージから各種情報を読みこみ
     logger.info("handler_review_submitted fired")
     message_url = body["review"]["html_url"]
     reviewer = body["review"]["user"]["login"]
@@ -144,14 +151,15 @@ def handler_review_submitted(headers: dict, body: dict):
     notify_slack(notify_message, attach_message=message)
 
 
-def handler_issue_pr_mentioned(headers: dict, body: dict):
+def handler_issue_pr_mentioned(headers: dict, body: dict) -> None:
     """
-    Issue, PR の本文・コメントで mention されたら通知
+    Issue, PR の本文・コメントで mention されたら通知 - 対象外のメッセージについては何もしない
 
     :param headers:
     :param body:
     :return:
     """
+    # 処理すべきメッセージかどうかをチェック
     github_event_kind = headers["X-GitHub-Event"]
     if github_event_kind == "issues":
         data_key = "issue"
@@ -173,6 +181,7 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     else:
         return  # deleted など、ほかイベントのときは何もしない
 
+    # メッセージから各種情報を読みこみ
     logger.info("handler_issue_pr_mentioned fired")
     message_url = body[data_key]["html_url"]
     commenter = body[data_key]["user"]["login"]
@@ -194,7 +203,7 @@ def handler_issue_pr_mentioned(headers: dict, body: dict):
     notify_slack(notify_message, attach_message=message)
 
 
-def notify_slack(text: str, attach_message: str = None):
+def notify_slack(text: str, attach_message: str = None) -> None:
     """
     mention する場合、 "<@username>" と <> で囲う必要があることに注意
     :param text: Slack に入れる文字列
@@ -218,7 +227,7 @@ def notify_slack(text: str, attach_message: str = None):
         logger.info(f"slack notify as attachment: {attach_message}")
 
 
-def _load_config():
+def _load_config() -> None:
     global GITHUB_TO_SLACK
     if GITHUB_TO_SLACK:
         return  # ロード済みなら何もしない
@@ -249,7 +258,7 @@ def _mention_str(users) -> str:
     return r
 
 
-def _lambda_logging_init():
+def _lambda_logging_init() -> None:
     """
     logging の初期化。LOGGING_LEVEL, LOGGING_LEVELS 環境変数を見て、ログレベルを設定する。
       LOGGING_LEVELS - "module1=DEBUG,module2=INFO" という形の文字列を想定。自分のモジュールのみ DEBUG にするときなどに利用
