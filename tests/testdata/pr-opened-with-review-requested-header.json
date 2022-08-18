@@ -1,0 +1,20 @@
+{
+  "Accept": "*/*",
+  "CloudFront-Forwarded-Proto": "https",
+  "CloudFront-Is-Desktop-Viewer": "true",
+  "CloudFront-Is-Mobile-Viewer": "false",
+  "CloudFront-Is-SmartTV-Viewer": "false",
+  "CloudFront-Is-Tablet-Viewer": "false",
+  "CloudFront-Viewer-Country": "US",
+  "content-type": "application/json",
+  "Host": "3p2jpwjtw9.execute-api.ap-northeast-1.amazonaws.com",
+  "User-Agent": "GitHub-Hookshot/10c6350",
+  "Via": "1.1 a809017c4252ec777a5d97cf31a304ca.cloudfront.net (CloudFront)",
+  "X-Amz-Cf-Id": "N6TWitmCHV-tsq4QPxalmPjgGAERqen5JvOHva5iM9zcQOLdlkmyKg==",
+  "X-Amzn-Trace-Id": "Root=1-5ea43521-bff0a80835f53dd743747e2f",
+  "X-Forwarded-For": "140.82.115.251, 64.252.169.163",
+  "X-Forwarded-Port": "443",
+  "X-Forwarded-Proto": "https",
+  "X-GitHub-Delivery": "27bc9000-86f5-11ea-8518-238f188eaf7f",
+  "X-GitHub-Event": "pull_request"
+}

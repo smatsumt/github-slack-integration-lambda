@@ -94,6 +94,27 @@ def test_handler_review_requested(monkeypatch):
     assert kwargs["attach_message"] == ""
 
 
+def test_handler_review_requested_when_pr_opened(monkeypatch):
+    """ PR 作成時にレビュー依頼されていたケース """
+    mentioned_header_path = SCRIPT_PATH.parent / "testdata/pr-opened-with-review-requested-header.json"
+    mentioned_body_path = SCRIPT_PATH.parent / "testdata/pr-opened-with-review-requested-body.json"
+    header = json.loads(mentioned_header_path.read_text())
+    body = json.loads(mentioned_body_path.read_text())
+
+    import github_webhook_lambda
+    mock = MagicMock()
+    monkeypatch.setattr(github_webhook_lambda, "GITHUB_TO_SLACK", {"@smatsumt": "@smatsumt", "@skawagt": "@skawagt", "@smatsumoto78": "@smatsumoto78"})
+    monkeypatch.setattr(github_webhook_lambda, "notify_slack", mock)
+    monkeypatch.setattr(github_webhook_lambda.notify_record, "query_pr_reviewers", MagicMock(return_value=[]))
+    monkeypatch.setattr(github_webhook_lambda.notify_record, "insert_pr_reviewers", MagicMock())
+    monkeypatch.setattr(github_webhook_lambda.notify_record, "store", MagicMock())
+    r = github_webhook_lambda.handler_review_requested(header, body)
+
+    args, kwargs = mock.call_args
+    assert args[0] == ':triangular_flag_on_post: <@skawagt> <@smatsumoto78>, *review requested* by smatsumt in https://github.com/smatsumt/testrepo2/pull/3'
+    assert kwargs["attach_message"] == ""
+
+
 def test_handler_review_submitted(monkeypatch):
     """ handler_issue_pr_mentioned にサンプル入力を入れて動作確認 """
     mentioned_header_path = SCRIPT_PATH.parent / "testdata/review-submitted-header.json"

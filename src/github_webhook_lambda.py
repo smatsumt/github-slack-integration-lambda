@@ -50,7 +50,7 @@ def lambda_handler(event, context):
     # メッセージの読み込み + ログ出力
     headers = event["headers"]
     body = event["body"]
-    logger.info(headers)
+    logger.info(json.dumps(headers))
     logger.info(body)
     body = json.loads(body)
 
@@ -74,7 +74,7 @@ def handler_review_requested(headers: dict, body: dict) -> None:
     github_event_kind = headers["X-GitHub-Event"]
     if github_event_kind != "pull_request":
         return
-    if body["action"] != "review_requested":
+    if body["action"] != "review_requested" and body["action"] != "opened":
         return
 
     # メッセージから各種情報を読みこみ
